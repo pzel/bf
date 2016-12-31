@@ -18,6 +18,7 @@ library
   exposed-modules:     BF
   build-depends:       base >= 4.7 && < 5
                      , regex-compat
+                     , parsec
   default-language:    Haskell2010
 
 executable bf-exe
@@ -26,6 +27,7 @@ executable bf-exe
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   build-depends:       base
                      , bf
+                     , parsec
   default-language:    Haskell2010
 
 test-suite bf-test
