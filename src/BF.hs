@@ -1,13 +1,11 @@
 {-# LANGUAGE RecordWildCards #-}
 module BF where
-import Control.Concurrent
 import Data.Char (chr, ord)
 import Data.Maybe (mapMaybe)
-import Data.Word
-import Data.Int
+import Data.Word (Word8)
 import Text.Parsec
-import Text.Parsec.String
-import Text.Parsec.Char
+import Text.Parsec.String (Parser)
+import Text.Parsec.Char (char)
 
 type Cell = Word8
 data Expr = L | R | Inc | Dec | I | O | Loop [Expr]
@@ -20,10 +18,7 @@ focused (VM _ (x:_)) = x
 swap f (VM ls (x:rs)) = VM ls ((f x):rs)
 inc = swap (+1)
 dec = swap (\x -> x - 1)
-mkVm :: VM
 mkVm = VM (repeat 0) (repeat 0)
-
-snapshot :: VM -> String
 snapshot (VM l (x:rs)) =
   show (reverse $ take 5 l) ++ (show [x]) ++ (show (take 5 rs))
 
@@ -42,6 +37,7 @@ stepDbg cmds vm = do
   putStrLn (snapshot vm)
   run' cmds vm
 
+-- step = stepDbg
 step = run'
 
 run' :: [Expr] -> VM -> IO VM
@@ -58,8 +54,7 @@ run' l@((Loop cs):next) vm =
     nonzero -> step cs vm >>= \newVm -> step l newVm
 
 output c = putStr [chr $ fromIntegral c]
-input vm = getChar >>= \c ->
-              return $ swap (const (fromIntegral $ ord c)) vm
+input vm = getChar >>= \c -> return $ swap (const (fromIntegral $ ord c)) vm
 
 parseSource :: String -> Either ParseError [Expr]
 parseSource s = parse parseBf "BF syntax error" (clean s)
@@ -69,13 +64,11 @@ parseBf :: Parser [Expr]
 parseBf = many expr
 
 expr :: Parser Expr
-expr = choice [char ',' >> return I
-              ,char '.' >> return O
-              ,char '+' >> return Inc
-              ,char '-' >> return Dec
-              ,char '<' >> return L
-              ,char '>' >> return R
-              ,loop ]
+expr = choice
+       [char ',' >> return I, char '.' >> return O
+       ,char '+' >> return Inc, char '-' >> return Dec
+       ,char '<' >> return L, char '>' >> return R
+       ,loop ]
   where
     loop = do
       _ <- char '['
