@@ -1,5 +1,6 @@
-{-# LANGUAGE RecordWildCards #-}
 module BF where
+
+import Control.Monad (foldM)
 import Data.Char (chr, ord)
 import Data.Maybe (mapMaybe)
 import Data.Word (Word8)
@@ -26,42 +27,30 @@ parseAndRun :: String -> IO VM
 parseAndRun s =
   case parseSource s of
     Left e -> error (show e)
-    Right ast -> run ast
+    Right ast -> eval ast mkVm
 
-run :: [Expr] -> IO VM
-run cmds = run' cmds mkVm
+eval :: [Expr] -> VM -> IO VM
+eval cmds vm = foldM (flip evalStep) vm cmds
 
-stepDbg :: [Expr] -> VM -> IO VM
-stepDbg cmds vm = do
-  putStrLn (show $ take 5 cmds)
-  putStrLn (snapshot vm)
-  run' cmds vm
+evalStep :: Expr -> VM -> IO VM
+evalStep Inc = return . inc
+evalStep Dec = return . dec
+evalStep R = return . right
+evalStep L = return . left
+evalStep O = evalOutput
+evalStep I = evalInput
+evalStep l@(Loop cs) = evalLoop l
 
--- step = stepDbg
-step = run'
-
-run' :: [Expr] -> VM -> IO VM
-run' [] vm = return vm
-run' (Inc:cmds) vm = step cmds (inc vm)
-run' (Dec:cmds) vm = step cmds (dec vm)
-run' (R:cmds) vm = step cmds (right vm)
-run' (L:cmds) vm = step cmds (left vm)
-run' (O:cmds) vm = output (focused vm) >> step cmds vm
-run' (I:cmds) vm = input vm >>= \newVm -> step cmds newVm
-run' l@((Loop cs):next) vm =
-  case focused vm of
-    0 -> step next vm
-    nonzero -> step cs vm >>= \newVm -> step l newVm
-
-output c = putStr [chr $ fromIntegral c]
-input vm = getChar >>= \c -> return $ swap (const (fromIntegral $ ord c)) vm
+evalLoop l@(Loop cs) vm =
+  if 0 == focused vm
+  then return vm
+  else (eval cs vm) >>= evalStep (Loop cs)
+evalOutput vm = putStr [chr $ fromIntegral (focused vm)] >> return vm
+evalInput vm = getChar >>= \c -> return $ swap (const (fromIntegral $ ord c)) vm
 
 parseSource :: String -> Either ParseError [Expr]
-parseSource s = parse parseBf "BF syntax error" (clean s)
-  where clean = concat . lines . filter (`elem` "><+-.,[]")
-
-parseBf :: Parser [Expr]
-parseBf = many expr
+parseSource s = parse (many expr) "BF syntax error" (clean s)
+  where clean = filter (`elem` "><+-.,[]")
 
 expr :: Parser Expr
 expr = choice

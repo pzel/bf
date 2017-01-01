@@ -4,7 +4,7 @@ build:
 	stack build
 	cp .stack-work/dist/x86_64-linux/Cabal-1.24.0.0/build/bf-exe/bf-exe ./bf
 
-example: build
+example: test build
 	./bf ./bf-src/hello.bf
 
 test:
