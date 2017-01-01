@@ -11,7 +11,7 @@ import Text.Parsec.Char (char)
 type Cell = Word8
 data Expr = L | R | Inc | Dec | I | O | Loop [Expr]
            deriving (Eq, Show)
-data VM = VM [Cell] [Cell] deriving (Eq, Show)
+data VM = VM [Cell] [Cell] deriving (Eq)
 
 left (VM (x:ls) rs) = VM ls (x:rs)
 right (VM ls (x:rs)) = VM (x:ls) rs
@@ -20,8 +20,6 @@ swap f (VM ls (x:rs)) = VM ls ((f x):rs)
 inc = swap (+1)
 dec = swap (\x -> x - 1)
 mkVm = VM (repeat 0) (repeat 0)
-snapshot (VM l (x:rs)) =
-  show (reverse $ take 5 l) ++ (show [x]) ++ (show (take 5 rs))
 
 parseAndRun :: String -> IO VM
 parseAndRun s =
